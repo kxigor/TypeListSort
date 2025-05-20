@@ -1,0 +1,2 @@
+add_executable(TypeListTests TypeListTests.cpp)
+add_executable(TypeListQuckSortTests TypeListQuckSortTests.cpp)
