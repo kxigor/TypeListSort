@@ -25,7 +25,7 @@ struct Tail<TypeList<T, Ts...>> {
 
 template <std::size_t I, typename TList>
 struct Get {
-  using type = Get<I - 1, typename Tail<TList>::type>;
+  using type = Get<I - 1, typename Tail<TList>::type>::type;
 };
 
 template <typename TList>
