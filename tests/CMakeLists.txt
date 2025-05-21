@@ -24,3 +24,8 @@ add_google_test(
     TypeListQuckSortTests 
     TypeListQuckSortTests.cpp
 )
+
+add_google_test(
+    TypesPredicatesTests
+    TypesPredicatesTests.cpp
+)
