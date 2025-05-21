@@ -152,6 +152,92 @@ TEST(PredicatesTest, TypeNameGreaterPred) {
   static_assert(!TypeNameLessPred<short, long>::value);
 }
 
+
+struct A {}; // depth = 0
+struct B : A {}; // depth = 1
+struct C : B {}; // depth = 2
+struct D : C {}; // depth = 3
+struct E : D {}; // depth = 4
+
+struct A2 {}; // depth = 0
+struct B2 : A2 {}; // depth = 1
+struct C2 : B2 {}; // depth = 2
+struct D2 : C2 {}; // depth = 3
+struct E2 : D2 {}; // depth = 4
+
+struct F : B, C2 {}; // depth = max(1, 2) + 1 = 3
+struct G : F, D2 {}; // depth = max(3, 3) + 1 = 4
+struct H : G, E2 {}; // depth = max(4, 4) + 1 = 5
+
+TEST(DepthOfInheritancePredTest, BasicCases) {
+  using namespace type_list::predicates;
+
+  static_assert(DepthOfInheritanceLessPred<A, B>::value, "A < B");
+  static_assert(DepthOfInheritanceLessPred<B, C>::value, "B < C");
+  static_assert(DepthOfInheritanceLessPred<C, D>::value, "C < D");
+  
+  static_assert(DepthOfInheritanceGreaterPred<D, C>::value, "D > C");
+  static_assert(DepthOfInheritanceGreaterPred<C, B>::value, "C > B");
+  static_assert(DepthOfInheritanceGreaterPred<B, A>::value, "B > A");
+}
+
+TEST(DepthOfInheritancePredTest, EqualDepth) {
+  using namespace type_list::predicates;
+
+  static_assert(!DepthOfInheritanceLessPred<D, D>::value, "D !< D");
+  static_assert(!DepthOfInheritanceGreaterPred<D, D>::value, "D !> D");
+  
+  struct X : A {}; // depth = 1
+  static_assert(!DepthOfInheritanceLessPred<B, X>::value, "B !< X");
+  static_assert(!DepthOfInheritanceGreaterPred<B, X>::value, "B !> X");
+}
+
+TEST(DepthOfInheritancePredTest, MultipleInheritance) {
+  using namespace type_list::predicates;
+
+  static_assert(DepthOfInheritanceLessPred<B, F>::value, "B < F");
+  static_assert(DepthOfInheritanceLessPred<C, F>::value, "C < F");
+  static_assert(DepthOfInheritanceLessPred<F, G>::value, "F < G");
+  static_assert(DepthOfInheritanceLessPred<G, H>::value, "G < H");
+  
+  static_assert(DepthOfInheritanceGreaterPred<H, G>::value, "H > G");
+  static_assert(DepthOfInheritanceGreaterPred<G, F>::value, "G > F");
+  static_assert(DepthOfInheritanceGreaterPred<F, C>::value, "F > C");
+}
+
+TEST(DepthOfInheritancePredTest, ComplexCases) {
+  using namespace type_list::predicates;
+
+  struct X : A {}; // depth = 1
+  struct Y : X, B {}; // depth = max(1, 1) + 1 = 2
+  struct Z : Y, C {}; // depth = max(2, 2) + 1 = 3
+  
+  static_assert(DepthOfInheritanceLessPred<Y, Z>::value, "Y < Z");
+  static_assert(DepthOfInheritanceLessPred<X, Y>::value, "X < Y");
+  static_assert(DepthOfInheritanceLessPred<A, Z>::value, "A < Z");
+  
+  static_assert(DepthOfInheritanceGreaterPred<Z, Y>::value, "Z > Y");
+  static_assert(DepthOfInheritanceGreaterPred<Y, X>::value, "Y > X");
+  static_assert(DepthOfInheritanceGreaterPred<Z, A>::value, "Z > A");
+}
+
+TEST(DepthOfInheritancePredTest, MixedCases) {
+  using namespace type_list::predicates;
+
+  struct X {}; // depth = 0
+  struct X2 {}; // depth = 0
+  struct Y : X {}; // depth = 1
+  struct Z : X2, Y {}; // depth = max(0, 1) + 1 = 2
+  
+  static_assert(DepthOfInheritanceLessPred<X, Y>::value, "X < Y");
+  static_assert(DepthOfInheritanceLessPred<Y, Z>::value, "Y < Z");
+  static_assert(DepthOfInheritanceLessPred<A, Z>::value, "A < Z");
+  
+  static_assert(DepthOfInheritanceGreaterPred<Z, Y>::value, "Z > Y");
+  static_assert(DepthOfInheritanceGreaterPred<Y, X>::value, "Y > X");
+  static_assert(DepthOfInheritanceGreaterPred<Z, A>::value, "Z > A");
+}
+
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

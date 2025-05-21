@@ -320,38 +320,38 @@ struct Int7 {
 TEST(PerformPredTest, BasicFunctionality) {
   using List = TypeList<Int2, Int3, Int1, Int5, Int7>;
 
-  constexpr int min = PerformPred<int, LessThan, -1, List>::value;
+  constexpr int min = PerformBinaryPred<int, LessThan, -1, List>::value;
   static_assert(min == 1, "Should find minimum value 1");
 
-  constexpr int max = PerformPred<int, GreaterThan, -1, List>::value;
+  constexpr int max = PerformBinaryPred<int, GreaterThan, -1, List>::value;
   static_assert(max == 7, "Should find maximum value 7");
 }
 
 TEST(PerformPredTest, SingleElementList) {
   using SingleList = TypeList<Int5>;
 
-  constexpr int single = PerformPred<int, LessThan, -1, SingleList>::value;
+  constexpr int single = PerformBinaryPred<int, LessThan, -1, SingleList>::value;
   static_assert(single == 5, "Single element list should return its value");
 }
 
 TEST(PerformPredTest, EmptyList) {
   using EmptyList = TypeList<>;
 
-  constexpr int empty = PerformPred<int, LessThan, -1, EmptyList>::value;
+  constexpr int empty = PerformBinaryPred<int, LessThan, -1, EmptyList>::value;
   static_assert(empty == -1, "Empty list should return NullVal");
 }
 
 TEST(PerformPredTest, AllEqualValues) {
   using EqualList = TypeList<Int2, Int2, Int2>;
 
-  constexpr int result = PerformPred<int, LessThan, -1, EqualList>::value;
+  constexpr int result = PerformBinaryPred<int, LessThan, -1, EqualList>::value;
   static_assert(result == 2, "All equal values should return that value");
 }
 
 TEST(PerformPredTest, ComplexSelection) {
   using ComplexList = TypeList<Int7, Int1, Int5, Int2, Int3>;
 
-  constexpr int closest = PerformPred<int, ClosestTo4, -1, ComplexList>::value;
+  constexpr int closest = PerformBinaryPred<int, ClosestTo4, -1, ComplexList>::value;
   static_assert(closest == 5 || closest == 3, "Should find value closest to 4");
 }
 

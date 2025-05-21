@@ -179,51 +179,35 @@ struct Swap<I, I, TList> {
 template <std::size_t I, std::size_t J, typename TList>
 using SwapT = typename Swap<I, J, TList>::type;
 
-template <typename T, typename ValueType>
-concept HasValueOfType = requires {
-  { T::value } -> std::convertible_to<ValueType>;
-};
-
-template <template <typename, typename> typename Pred, typename LHS,
-          typename RHS>
-concept PredicateWithBoolValue = requires {
-  { Pred<LHS, RHS>::value } -> std::convertible_to<bool>;
-};
-
 template <typename ValueType,
           template <typename LHS, typename RHS> typename Pred,
           ValueType NullVal, typename TList>
-requires PredicateWithBoolValue<Pred, ValueType, ValueType>
-struct PerformPred;
+struct PerformBinaryPred;
 
 template <typename ValueType,
-          template <HasValueOfType<ValueType> LHS,
-                    HasValueOfType<ValueType> RHS> typename Pred,
-          ValueType NullVal, HasValueOfType<ValueType> T,
-          HasValueOfType<ValueType> U, HasValueOfType<ValueType>... Ts>
-requires PredicateWithBoolValue<Pred, ValueType, ValueType>
-struct PerformPred<ValueType, Pred, NullVal, TypeList<T, U, Ts...>> {
+          template <typename LHS,
+                    typename RHS> typename Pred,
+          ValueType NullVal, typename T,
+          typename U, typename... Ts>
+struct PerformBinaryPred<ValueType, Pred, NullVal, TypeList<T, U, Ts...>> {
   static constexpr ValueType value =
       Pred<T, U>::value
-          ? PerformPred<ValueType, Pred, NullVal, TypeList<T, Ts...>>::value
-          : PerformPred<ValueType, Pred, NullVal, TypeList<U, Ts...>>::value;
+          ? PerformBinaryPred<ValueType, Pred, NullVal, TypeList<T, Ts...>>::value
+          : PerformBinaryPred<ValueType, Pred, NullVal, TypeList<U, Ts...>>::value;
 };
 
 template <typename ValueType,
-          template <HasValueOfType<ValueType> LHS,
-                    HasValueOfType<ValueType> RHS> typename Pred,
-          ValueType NullVal, HasValueOfType<ValueType> T>
-requires PredicateWithBoolValue<Pred, ValueType, ValueType>
-struct PerformPred<ValueType, Pred, NullVal, TypeList<T>> {
+          template <typename LHS,
+                    typename RHS> typename Pred,
+          ValueType NullVal, typename T>
+struct PerformBinaryPred<ValueType, Pred, NullVal, TypeList<T>> {
   static constexpr ValueType value = T::value;
 };
 
 template <typename ValueType,
           template <typename LHS, typename RHS> typename Pred,
           ValueType NullVal>
-requires PredicateWithBoolValue<Pred, ValueType, ValueType>
-struct PerformPred<ValueType, Pred, NullVal, TypeList<>> {
+struct PerformBinaryPred<ValueType, Pred, NullVal, TypeList<>> {
   static constexpr ValueType value = NullVal;
 };
-
 }  // namespace type_list

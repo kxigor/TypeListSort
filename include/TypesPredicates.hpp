@@ -96,11 +96,6 @@ struct TypeNameGreaterPred {
 };
 
 namespace details {
-template <typename T, typename U>
-struct Max {
-  static constexpr bool value = T::value > U::value;
-};
-
 template <typename T>
 struct GetBasesTypeList {
 #ifdef __GNUC__
@@ -109,22 +104,45 @@ struct GetBasesTypeList {
 };
 
 template <typename T>
-struct GetDepthOfInheritance {
-  std::size_t value =
-      PerformPred<std::size_t, Max, -1ull, GetBasesTypeList<T>>::value + 1ull;
+using GetBasesTypeListT = typename GetBasesTypeList<T>::type;
+
+template <typename TList>
+struct GetDepthOfInheritanceImpl;
+
+template <typename... Ts>
+struct GetDepthOfInheritanceImpl<TypeList<Ts...>> {
+  static constexpr std::size_t value =
+      std::max({GetDepthOfInheritanceImpl<GetBasesTypeListT<Ts>>::value...}) +
+      1ull;
 };
+
+template <>
+struct GetDepthOfInheritanceImpl<TypeList<>> {
+  static constexpr std::size_t value = 0;
+};
+
+template <typename T>
+struct GetDepthOfInheritance {
+  static constexpr std::size_t value =
+      GetDepthOfInheritanceImpl<GetBasesTypeListT<T>>::value;
+};
+
+template <typename T>
+static constexpr std::size_t GetDepthOfInheritanceV =
+    GetDepthOfInheritance<T>::value;
+
 };  // namespace details
 
 template <typename LHS, typename RHS>
 struct DepthOfInheritanceLessPred {
-  static constexpr bool value = details::GetDepthOfInheritance<LHS>::value <
-                                details::GetDepthOfInheritance<RHS>::value;
+  static constexpr bool value = details::GetDepthOfInheritanceV<LHS> <
+                                details::GetDepthOfInheritanceV<RHS>;
 };
 
 template <typename LHS, typename RHS>
 struct DepthOfInheritanceGreaterPred {
-  static constexpr bool value = details::GetDepthOfInheritance<RHS>::value <
-                                details::GetDepthOfInheritance<LHS>::value;
+  static constexpr bool value = details::GetDepthOfInheritanceV<RHS> <
+                                details::GetDepthOfInheritanceV<LHS>;
 };
 
 };  // namespace type_list::predicates
