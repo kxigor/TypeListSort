@@ -21,8 +21,8 @@ add_google_test(
 )
 
 add_google_test(
-    TypeListQuckSortTests 
-    TypeListQuckSortTests.cpp
+    TypeListSortTests 
+    TypeListSortTests.cpp
 )
 
 add_google_test(

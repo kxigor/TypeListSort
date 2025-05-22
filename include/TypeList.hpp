@@ -7,6 +7,15 @@ namespace type_list {
 template <typename... Ts>
 struct TypeList {};
 
+template <typename TList1, typename TList2>
+struct IsSameList : std::false_type {};
+
+template <typename... Ts>
+struct IsSameList<TypeList<Ts...>, TypeList<Ts...>> : std::true_type {};
+
+template <typename TList1, typename TList2>
+constexpr bool IsSameListV = IsSameList<TList1, TList2>::value;
+
 template <typename... Ts>
 struct Head;
 
@@ -69,7 +78,7 @@ struct AppendBack;
 
 template <typename T, typename... Ts>
 struct AppendBack<T, TypeList<Ts...>> {
-  using type = TypeList<T, Ts...>;
+  using type = TypeList<Ts..., T>;
 };
 
 template <typename T, typename TList>
@@ -80,7 +89,7 @@ struct AppendFront;
 
 template <typename T, typename... Ts>
 struct AppendFront<T, TypeList<Ts...>> {
-  using type = TypeList<Ts..., T>;
+  using type = TypeList<T, Ts...>;
 };
 
 template <typename T, typename TList>
@@ -179,35 +188,78 @@ struct Swap<I, I, TList> {
 template <std::size_t I, std::size_t J, typename TList>
 using SwapT = typename Swap<I, J, TList>::type;
 
+template <std::size_t I, typename TList>
+struct Erase {
+  using type = ConcatT<SliceT<0, I, TList>, SliceT<I + 1, SizeV<TList>, TList>>;
+};
+
+template <std::size_t I, typename TList>
+using EraseT = typename Erase<I, TList>::type;
+
 template <typename ValueType,
           template <typename LHS, typename RHS> typename Pred,
           ValueType NullVal, typename TList>
-struct PerformBinaryPred;
+struct PerformBinaryPredByValue;
 
 template <typename ValueType,
-          template <typename LHS,
-                    typename RHS> typename Pred,
-          ValueType NullVal, typename T,
-          typename U, typename... Ts>
-struct PerformBinaryPred<ValueType, Pred, NullVal, TypeList<T, U, Ts...>> {
+          template <typename LHS, typename RHS> typename Pred,
+          ValueType NullVal, typename T, typename U, typename... Ts>
+struct PerformBinaryPredByValue<ValueType, Pred, NullVal,
+                                TypeList<T, U, Ts...>> {
   static constexpr ValueType value =
-      Pred<T, U>::value
-          ? PerformBinaryPred<ValueType, Pred, NullVal, TypeList<T, Ts...>>::value
-          : PerformBinaryPred<ValueType, Pred, NullVal, TypeList<U, Ts...>>::value;
+      Pred<T, U>::value ? PerformBinaryPredByValue<ValueType, Pred, NullVal,
+                                                   TypeList<T, Ts...>>::value
+                        : PerformBinaryPredByValue<ValueType, Pred, NullVal,
+                                                   TypeList<U, Ts...>>::value;
 };
 
 template <typename ValueType,
-          template <typename LHS,
-                    typename RHS> typename Pred,
+          template <typename LHS, typename RHS> typename Pred,
           ValueType NullVal, typename T>
-struct PerformBinaryPred<ValueType, Pred, NullVal, TypeList<T>> {
+struct PerformBinaryPredByValue<ValueType, Pred, NullVal, TypeList<T>> {
   static constexpr ValueType value = T::value;
 };
 
 template <typename ValueType,
           template <typename LHS, typename RHS> typename Pred,
           ValueType NullVal>
-struct PerformBinaryPred<ValueType, Pred, NullVal, TypeList<>> {
+struct PerformBinaryPredByValue<ValueType, Pred, NullVal, TypeList<>> {
   static constexpr ValueType value = NullVal;
 };
+
+template <template <typename LHS, typename RHS> typename Pred, std::size_t TI,
+          std::size_t UI, typename TList>
+struct PerformBinaryPredByIndexImpl;
+
+template <template <typename LHS, typename RHS> typename Pred, std::size_t TI,
+          std::size_t UI, typename T, typename U, typename... Ts>
+struct PerformBinaryPredByIndexImpl<Pred, TI, UI, TypeList<T, U, Ts...>> {
+ private:
+  static constexpr bool pred_result = Pred<T, U>::value;
+  using NextT = std::conditional_t<pred_result, T, U>;
+  static constexpr std::size_t NextV = pred_result ? TI : UI;
+
+ public:
+  static constexpr std::size_t value =
+      PerformBinaryPredByIndexImpl<Pred, NextV, UI + 1,
+                                   TypeList<NextT, Ts...>>::value;
+};
+
+template <template <typename LHS, typename RHS> typename Pred, std::size_t TI,
+          std::size_t UI, typename T, typename U>
+struct PerformBinaryPredByIndexImpl<Pred, TI, UI, TypeList<T, U>> {
+  static constexpr std::size_t value = Pred<T, U>::value ? TI : UI;
+};
+
+template <template <typename LHS, typename RHS> typename Pred, typename TList>
+struct PerformBinaryPredByIndex {
+  static constexpr std::size_t value = []() {
+    if constexpr (SizeV<TList> < 2ull) {
+      return SizeV<TList> - 1ull;
+    } else {
+      return PerformBinaryPredByIndexImpl<Pred, 0, 1, TList>::value;
+    }
+  }();
+};
+
 }  // namespace type_list

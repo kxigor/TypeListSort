@@ -76,20 +76,6 @@ TEST(ConcatTest, MultipleTypes) {
       "Concat should handle lists of different lengths");
 }
 
-TEST(AppendBackTest, EmptyList) {
-  using List = TypeList<>;
-  using Result = typename AppendBack<int, List>::type;
-  static_assert(std::is_same_v<Result, TypeList<int>>,
-                "AppendBack to empty list should create single-element list");
-}
-
-TEST(AppendBackTest, NonEmptyList) {
-  using List = TypeList<double, char>;
-  using Result = typename AppendBack<int, List>::type;
-  static_assert(std::is_same_v<Result, TypeList<int, double, char>>,
-                "AppendBack should add element to the front");
-}
-
 TEST(AppendFrontTest, EmptyList) {
   using List = TypeList<>;
   using Result = typename AppendFront<int, List>::type;
@@ -100,8 +86,22 @@ TEST(AppendFrontTest, EmptyList) {
 TEST(AppendFrontTest, NonEmptyList) {
   using List = TypeList<double, char>;
   using Result = typename AppendFront<int, List>::type;
+  static_assert(std::is_same_v<Result, TypeList<int, double, char>>,
+                "AppendFront should add element to the front");
+}
+
+TEST(AppendBackTest, EmptyList) {
+  using List = TypeList<>;
+  using Result = typename AppendBack<int, List>::type;
+  static_assert(std::is_same_v<Result, TypeList<int>>,
+                "AppendBack to empty list should create single-element list");
+}
+
+TEST(AppendBackTest, NonEmptyList) {
+  using List = TypeList<double, char>;
+  using Result = typename AppendBack<int, List>::type;
   static_assert(std::is_same_v<Result, TypeList<double, char, int>>,
-                "AppendFront should add element to the back");
+                "AppendBack should add element to the back");
 }
 
 TEST(PopBackTest, SingleElement) {
@@ -320,39 +320,86 @@ struct Int7 {
 TEST(PerformPredTest, BasicFunctionality) {
   using List = TypeList<Int2, Int3, Int1, Int5, Int7>;
 
-  constexpr int min = PerformBinaryPred<int, LessThan, -1, List>::value;
+  constexpr int min = PerformBinaryPredByValue<int, LessThan, -1, List>::value;
   static_assert(min == 1, "Should find minimum value 1");
 
-  constexpr int max = PerformBinaryPred<int, GreaterThan, -1, List>::value;
+  constexpr int max =
+      PerformBinaryPredByValue<int, GreaterThan, -1, List>::value;
   static_assert(max == 7, "Should find maximum value 7");
 }
 
 TEST(PerformPredTest, SingleElementList) {
   using SingleList = TypeList<Int5>;
 
-  constexpr int single = PerformBinaryPred<int, LessThan, -1, SingleList>::value;
+  constexpr int single =
+      PerformBinaryPredByValue<int, LessThan, -1, SingleList>::value;
   static_assert(single == 5, "Single element list should return its value");
 }
 
 TEST(PerformPredTest, EmptyList) {
   using EmptyList = TypeList<>;
 
-  constexpr int empty = PerformBinaryPred<int, LessThan, -1, EmptyList>::value;
+  constexpr int empty =
+      PerformBinaryPredByValue<int, LessThan, -1, EmptyList>::value;
   static_assert(empty == -1, "Empty list should return NullVal");
 }
 
 TEST(PerformPredTest, AllEqualValues) {
   using EqualList = TypeList<Int2, Int2, Int2>;
 
-  constexpr int result = PerformBinaryPred<int, LessThan, -1, EqualList>::value;
+  constexpr int result =
+      PerformBinaryPredByValue<int, LessThan, -1, EqualList>::value;
   static_assert(result == 2, "All equal values should return that value");
 }
 
 TEST(PerformPredTest, ComplexSelection) {
   using ComplexList = TypeList<Int7, Int1, Int5, Int2, Int3>;
 
-  constexpr int closest = PerformBinaryPred<int, ClosestTo4, -1, ComplexList>::value;
+  constexpr int closest =
+      PerformBinaryPredByValue<int, ClosestTo4, -1, ComplexList>::value;
   static_assert(closest == 5 || closest == 3, "Should find value closest to 4");
+}
+
+TEST(PerformBinaryPredByIndexTest, EmptyList) {
+  using EmptyList = TypeList<>;
+
+  constexpr std::size_t result =
+      PerformBinaryPredByIndex<LessThan, EmptyList>::value;
+  static_assert(result == -1ull, "Empty list should return -1 (max size_t)");
+}
+
+TEST(PerformBinaryPredByIndexTest, SingleElementList) {
+  using SingleList = TypeList<Int1>;
+
+  constexpr std::size_t result =
+      PerformBinaryPredByIndex<LessThan, SingleList>::value;
+  static_assert(result == 0, "Single element list should return index 0");
+}
+
+TEST(PerformBinaryPredByIndexTest, AllEqualElements) {
+  using EqualList = TypeList<Int2, Int2, Int2>;
+
+  constexpr std::size_t result =
+      PerformBinaryPredByIndex<LessThan, EqualList>::value;
+  static_assert(result == 2, "All equal elements should return last index (2)");
+}
+
+TEST(PerformBinaryPredByIndexTest, FindMinElement) {
+  using ComplexList = TypeList<Int7, Int1, Int5, Int2, Int3>;
+
+  constexpr std::size_t min_index =
+      PerformBinaryPredByIndex<LessThan, ComplexList>::value;
+  static_assert(min_index == 1,
+                "Should find index of minimal element (Int1 at index 1)");
+}
+
+TEST(PerformBinaryPredByIndexTest, CustomPredicate) {
+  using ComplexList = TypeList<Int7, Int1, Int5, Int2, Int3>;
+
+  constexpr std::size_t max_index =
+      PerformBinaryPredByIndex<GreaterThan, ComplexList>::value;
+  static_assert(max_index == 0,
+                "Should find index of maximal element (Int7 at index 0)");
 }
 
 int main(int argc, char** argv) {
